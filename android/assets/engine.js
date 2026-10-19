@@ -239,8 +239,10 @@
     }
 
     var frontier = [];
+    var fromSet = {};                 // 修复: fromSids 是数组, 不能用 sid 当下标查
+    fromSids.forEach(function (s) { fromSet[s] = 1; });
     Object.keys(arrivals).forEach(function (sid) {
-      if (fromSids[sid] || fromSids[+sid]) arrivals[sid].forEach(function (a) {
+      if (fromSet[sid]) arrivals[sid].forEach(function (a) {
         frontier.push([+sid, a.t, a.p]);
       });
     });

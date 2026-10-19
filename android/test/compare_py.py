@@ -86,6 +86,9 @@ issues = []
 
 
 WHITELIST = {
+    # 纯性能计时字段(JS 实现更快), 与正确性无关
+    "elapsed",
+
     # SQLite GROUP_CONCAT 顺序不保证(Python 版本身是乱序), JS 按 seq 有序输出属改进
     "lines.data.route",
     # JS 保留了 station_id, 供前端 #/station 链接使用(桌面版无此键, 前端已兼容)
@@ -104,7 +107,7 @@ def cmp(path, a, b):
     """a=python(基准), b=js。"""
     np = norm(path)
     for w in WHITELIST:
-        if np == w or np.startswith(w + "."):
+        if np == w or np.startswith(w + ".") or np.endswith("." + w):
             return
     # 方案数组与 counts 由多重集/计数校验替代(逐字段比对会被顺序敏感差异淹没)
     if np in ("journey_bj_sh.plans", "plan_bj_cd.plans",
