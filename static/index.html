@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>坐着火车去旅行 · 本地数据库版</title>
+<link rel="stylesheet" href="/static/leaflet.css">
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<header>
+  <div class="brand">🚄 坐着火车去旅行 <span class="sub">本地数据库版</span>
+    <span id="data-badge" class="sub" style="margin-left:10px"></span></div>
+  <nav id="nav">
+    <a href="#/transfer" data-view="transfer">出行方案</a>
+    <a href="#/schedule" data-view="schedule">时刻表</a>
+    <a href="#/stations" data-view="stations">车站</a>
+    <a href="#/trains" data-view="trains">车次</a>
+    <a href="#/lines" data-view="lines">线路</a>
+    <a href="#/explore" data-view="explore">周边数据</a>
+  </nav>
+</header>
+<main id="app"><div class="loading">加载中…</div></main>
+<footer>数据来源：12306 公开车站表 + 本地生成时刻示例 · SQLite 单文件存储 · 仅供学习</footer>
+<script src="/static/leaflet.js"></script>
+<script src="/static/app.js"></script>
+</body>
+</html>

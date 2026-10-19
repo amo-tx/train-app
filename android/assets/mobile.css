@@ -1,0 +1,58 @@
+/* mobile.css — 手机窄屏适配(叠加在 style.css 之上, 不改桌面源文件)。
+ * 要点: 表格窄屏横向可滚、工具栏换行、地图高度自适应、顶栏紧凑。
+ */
+html { -webkit-text-size-adjust: 100%; }
+body { font-size: 14px; }
+
+header {
+  padding: 8px 12px;
+}
+header .brand { font-size: 16px; }
+header .brand .sub { font-size: 11px; }
+#nav { display: flex; flex-wrap: wrap; gap: 4px 2px; margin-top: 6px; }
+#nav a { padding: 5px 10px; font-size: 13px; }
+
+main { padding: 12px; }
+main h2 { font-size: 18px; }
+
+/* 数据表窄屏: 整表横向滚动(保留桌面结构, 只加滚动容器行为) */
+#app table {
+  display: block;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  white-space: nowrap;
+}
+#app table td, #app table th { padding: 6px 8px; font-size: 13px; }
+
+/* 工具栏换行 + 控件可点面积 */
+.toolbar { flex-wrap: wrap; gap: 6px; }
+.toolbar input, .toolbar select, .toolbar button {
+  min-height: 38px;
+  font-size: 14px;
+}
+.toolbar input[size] { width: auto !important; flex: 1 1 120px; min-width: 100px; }
+.toolbar input#pdate, .toolbar select { flex: 0 0 auto; }
+.toolbar button.primary { flex: 0 0 auto; padding: 6px 18px; }
+
+/* 详情键值面板 */
+.kv { grid-template-columns: auto 1fr; }
+.kv b { white-space: nowrap; }
+.grid2 { grid-template-columns: 1fr; }
+
+/* 价格日历网格 */
+.cal-grid { grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); }
+.cal-cell { min-height: 84px; padding: 6px; }
+.cal-date { font-size: 12px; }
+.cal-line { font-size: 12px; }
+
+/* 地图: 占满可视宽度, 高度按屏 55% */
+#map { height: 55vh !important; max-height: 540px; }
+
+/* 卡片网格 */
+.cards { grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); }
+.card .num { font-size: 20px; }
+
+/* 分页按钮 */
+.pager button { min-height: 36px; padding: 4px 14px; }
+
+footer { font-size: 11px; padding: 8px 12px; padding-bottom: calc(8px + env(safe-area-inset-bottom)); }

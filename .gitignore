@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.pyc
+build/
+dist/TrainApp.exe
+dist/data/
+server.log
+*.log
+
+# 原始下载数据(可由 import_*.py / updater.py 重新获取)
+data/fpd/
+data/osm_stations_raw.json
+data/train_detail_*.json
+
+# 构建中间产物
+android/test/cases.json
+android/test/results.json
+repo.xml
+
+# 系统
+Thumbs.db
+.DS_Store

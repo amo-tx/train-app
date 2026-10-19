@@ -1,0 +1,78 @@
+:root {
+  --bg: #10141c;
+  --panel: #1a2130;
+  --panel2: #212a3d;
+  --border: #2e3a52;
+  --text: #dde5f2;
+  --muted: #8a97ad;
+  --accent: #fe295f;      /* 沿用原小程序主题色 */
+  --accent2: #3aa6ff;
+  --green: #35c48d;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: var(--bg); color: var(--text);
+  font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
+  min-height: 100vh; display: flex; flex-direction: column;
+}
+header {
+  display: flex; align-items: center; gap: 24px; flex-wrap: wrap;
+  padding: 14px 24px; background: var(--panel);
+  border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 10;
+}
+.brand { font-size: 18px; font-weight: 700; }
+.brand .sub { font-size: 12px; color: var(--muted); font-weight: 400; margin-left: 6px; }
+nav { display: flex; gap: 4px; flex-wrap: wrap; }
+nav a {
+  color: var(--muted); text-decoration: none; padding: 6px 14px;
+  border-radius: 8px; font-size: 14px; transition: all .15s;
+}
+nav a:hover { color: var(--text); background: var(--panel2); }
+nav a.active { color: #fff; background: var(--accent); }
+main { flex: 1; padding: 24px; max-width: 1200px; width: 100%; margin: 0 auto; }
+footer { padding: 14px 24px; color: var(--muted); font-size: 12px; border-top: 1px solid var(--border); }
+.loading { color: var(--muted); padding: 40px; text-align: center; }
+
+h2 { margin-bottom: 16px; font-size: 20px; }
+h3 { margin: 18px 0 10px; font-size: 15px; color: var(--accent2); }
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; margin-bottom: 20px; }
+.card { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
+.card .num { font-size: 26px; font-weight: 700; color: var(--accent); }
+.card .label { font-size: 13px; color: var(--muted); margin-top: 4px; }
+
+.toolbar { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
+input, select, button {
+  background: var(--panel2); color: var(--text); border: 1px solid var(--border);
+  border-radius: 8px; padding: 8px 12px; font-size: 14px; outline: none;
+}
+input:focus { border-color: var(--accent2); }
+button { cursor: pointer; }
+button:hover { border-color: var(--accent); color: #fff; }
+button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+table { width: 100%; border-collapse: collapse; background: var(--panel); border-radius: 12px; overflow: hidden; font-size: 13px; }
+th { background: var(--panel2); color: var(--muted); text-align: left; padding: 10px 12px; font-weight: 500; }
+td { padding: 9px 12px; border-top: 1px solid var(--border); }
+tr:hover td { background: rgba(254, 41, 95, .05); }
+a.link { color: var(--accent2); text-decoration: none; cursor: pointer; }
+a.link:hover { text-decoration: underline; }
+.badge { display: inline-block; padding: 2px 8px; border-radius: 6px; font-size: 12px; margin-right: 4px; }
+.b-G, .b-C { background: #1d3a5f; color: #7cc0ff; }
+.b-D { background: #3d2f14; color: #ffcf70; }
+.b-K, .b-T, .b-Z { background: #3a1d2b; color: #ff8fb1; }
+.tag-major { background: rgba(254,41,95,.15); color: var(--accent); }
+.muted { color: var(--muted); }
+.pager { display: flex; gap: 8px; margin-top: 14px; align-items: center; color: var(--muted); font-size: 13px; }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+@media (max-width: 800px) { .grid2 { grid-template-columns: 1fr; } }
+.detail-panel { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 18px; margin-bottom: 18px; }
+.kv { display: grid; grid-template-columns: auto 1fr; gap: 6px 16px; font-size: 14px; }
+.kv b { color: var(--muted); font-weight: 400; }
+.tt-now { color: var(--green); font-weight: 700; }
+
+/* ---- 价格日历 ---- */
+.cal-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(122px,1fr));gap:8px}
+.cal-cell{border:1px solid var(--border);border-radius:8px;padding:8px;cursor:pointer;min-height:92px;transition:transform .1s}
+.cal-cell:hover{outline:2px solid #4da3ff;transform:translateY(-1px)}
+.cal-date{font-weight:600;margin-bottom:4px}
+.cal-line{font-size:12px;line-height:1.7;white-space:nowrap}
