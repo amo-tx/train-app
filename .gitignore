@@ -21,3 +21,4 @@ repo.xml
 Thumbs.db
 .DS_Store
 git-ca-bundle.pem
+rel_out.txt
