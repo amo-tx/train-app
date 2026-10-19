@@ -20,3 +20,4 @@ repo.xml
 # 系统
 Thumbs.db
 .DS_Store
+git-ca-bundle.pem
