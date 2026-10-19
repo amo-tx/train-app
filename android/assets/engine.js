@@ -521,7 +521,9 @@
     });
     pairs = pairs.slice(0, cap);
     var got = {};
+    var t0 = Date.now(), BUDGET = 12000;   // 总预算 12s, 12306 不可达时尽快放弃
     pairs.forEach(function (k) {
+      if (Date.now() - t0 > BUDGET) return;
       var ab = k.split(">");
       var d = RP.getPrices(dateS, tele[ab[0]], tele[ab[1]]);
       if (d) got[k] = d;

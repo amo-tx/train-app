@@ -337,7 +337,14 @@ async function viewTransfer() {
     const api_path = mode === "rail" ? "/api/journey" : "/api/plan";
     document.getElementById("plan-list").innerHTML =
       `<div class="loading">搜索中…(两次中转约需几秒${pdate ? ", 正在查询 12306 真实票价" : ""})</div>`;
-    const j = await api(`${api_path}?from=${encodeURIComponent(f)}&to=${encodeURIComponent(t)}&after=${after}&max_legs=${legs}&max_wait=${wait}&date=${encodeURIComponent(pdate)}`);
+    let j;
+    try {
+      j = await api(`${api_path}?from=${encodeURIComponent(f)}&to=${encodeURIComponent(t)}&after=${after}&max_legs=${legs}&max_wait=${wait}&date=${encodeURIComponent(pdate)}`);
+    } catch (err) {
+      document.getElementById("plan-list").innerHTML =
+        `<p class="muted">查询失败: ${esc(err && err.message || err)}</p>`;
+      return;
+    }
     if (!j.ok) { document.getElementById("plan-list").innerHTML = `<p class="muted">${esc(j.error)}</p>`; return; }
     if (mode === "flight") j.plans = j.plans.filter(p => p.kind !== "multimodal");
     _lastPlans = j.plans;

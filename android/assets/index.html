@@ -24,11 +24,34 @@
 </header>
 <main id="app"><div class="loading">加载中…</div></main>
 <footer>数据来源：12306 公开车站表 + OpenFlights/FP-Dataset · 本地离线数据 · 仅供学习</footer>
+<div id="jserr" style="display:none;position:fixed;left:8px;right:8px;bottom:8px;z-index:99999;
+  background:#7f1d1d;color:#fff;font:12px/1.5 monospace;padding:8px 10px;border-radius:6px;
+  max-height:40%;overflow:auto;white-space:pre-wrap"></div>
+<script>
+/* 顶层 JS 错误可见化: WebView 上排查问题用, 正常情况永不显示 */
+window.addEventListener("error", function (e) {
+  var el = document.getElementById("jserr");
+  if (el) {
+    el.style.display = "block";
+    el.textContent += "[JS错误] " + e.message + " @" + (e.filename || "").split("/").pop() +
+      ":" + e.lineno + "\n";
+  }
+});
+window.addEventListener("unhandledrejection", function (e) {
+  var r = e.reason, msg = r && (r.stack || r.message) || String(r);
+  var el = document.getElementById("jserr");
+  if (el) {
+    el.style.display = "block";
+    el.textContent += "[Promise] " + msg.slice(0, 300) + "\n";
+  }
+});
+</script>
+<!-- 注意顺序: 实时价模块必须先于 engine.js 加载(engine.js 载入时抓取 window.__RealPrice) -->
 <script src="leaflet.js"></script>
 <script src="data.js"></script>
-<script src="engine.js"></script>
 <script src="realprice.js"></script>
 <script src="flightprice.js"></script>
+<script src="engine.js"></script>
 <script src="apihost.js"></script>
 <script src="app.js"></script>
 </body>

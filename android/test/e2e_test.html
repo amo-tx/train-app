@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>E2E</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<!-- 与 index.html 完全一致的脚本链, 加 e2e 自驱动 -->
+<main id="app"><div class="loading">加载中…</div></main>
+<div id="e2e-out">PENDING</div>
+<script src="data.js"></script>
+<script src="realprice.js"></script>
+<script src="flightprice.js"></script>
+<script src="engine.js"></script>
+<script src="apihost.js"></script>
+<script src="app.js"></script>
+<script>
+(function () {
+  var log = [];
+  function done() {
+    var el = document.getElementById("e2e-out");
+    var meta = document.getElementById("plan-meta");
+    var rows = document.querySelectorAll("#plan-list .plan-row");
+    var trainRows = 0;
+    document.querySelectorAll("#plan-list .plan-row").forEach(function (tr) {
+      if (tr.innerText.indexOf("G") >= 0 || tr.innerText.indexOf("D") >= 0 ||
+          tr.innerText.indexOf("K") >= 0 || tr.innerText.indexOf("直达") >= 0 ||
+          tr.innerText.indexOf("中转") >= 0) trainRows++;
+    });
+    el.textContent = JSON.stringify({
+      log: log,
+      plan_meta: meta ? meta.innerText.slice(0, 150) : null,
+      plan_rows: rows.length,
+      train_like_rows: trainRows,
+      plan_list_head: (document.getElementById("plan-list") || {}).innerText ?
+        document.getElementById("plan-list").innerText.slice(0, 400) : null,
+      engine_probe: (function () {
+        try {
+          var r = window.__API.handle("/api/plan?from=%E5%8C%97%E4%BA%AC&to=%E4%B8%8A%E6%B5%B7&after=360&max_legs=2&max_wait=180&date=", "GET");
+          return { ok: r.ok, counts: r.counts, error: r.error || null };
+        } catch (e) { return { fatal: String(e) }; }
+      })()
+    });
+  }
+  try {
+    location.hash = "#/transfer";
+    if (window.router) window.router();
+    setTimeout(function () {
+      try {
+        var f = document.getElementById("from"), t = document.getElementById("to");
+        log.push("form:" + (f ? "ok" : "missing"));
+        if (f) f.value = "北京";
+        if (t) t.value = "上海";
+        log.push("rp:" + (window.__RealPrice ? "loaded" : "missing") +
+          " fp:" + (window.__FlightPrice ? "loaded" : "missing"));
+        window.__E2E_ERR = [];
+        window.onerror = function (m, s, l, c, e) {
+          window.__E2E_ERR.push(m + " @" + l + ":" + c);
+        };
+        var go = document.getElementById("go");
+        log.push("go-btn:" + (go && go.onclick ? "bound" : "NOT-BOUND"));
+        go.onclick();           // 触发闭包内的 queryPlans
+        log.push("queryPlans called");
+      } catch (e) { log.push("ERR:" + (e && e.stack || e)); done(); return; }
+      var n = 0;
+      (function poll() {
+        var rows = document.querySelectorAll("#plan-list .plan-row");
+        if (rows.length || ++n > 60) { log.push("rows:" + rows.length + " polls:" + n); done(); }
+        else setTimeout(poll, 100);
+      })();
+    }, 300);
+  } catch (e) {
+    log.push("OUTER:" + (e && e.stack || e));
+    done();
+  }
+})();
+</script>
+</body>
+</html>
