@@ -315,6 +315,15 @@ def seed(force=False):
     os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
     if os.path.exists(DB_PATH):
         os.remove(DB_PATH)
+    # frozen 模式: 优先使用打包内嵌的完整数据库(12306 真实车次 + 修复后机场表),
+    # 避免退化到拟真生成(车次/机场数据质量远低于真实库)。
+    if getattr(sys, "frozen", False):
+        res_db = os.path.join(RESOURCE_DIR, "data", "train.db")
+        if os.path.exists(res_db):
+            import shutil
+            shutil.copy2(res_db, DB_PATH)
+            print("[seed] 已从内嵌资源释放完整数据库:", DB_PATH)
+            return
     con = sqlite3.connect(DB_PATH)
     con.executescript(SCHEMA)
     cur = con.cursor()
