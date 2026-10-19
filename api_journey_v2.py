@@ -78,10 +78,11 @@ def _format_flight_plan(f):
 
 
 def _format_multimodal(m):
+    order = "先飞后铁" if m["flight"]["from_city"] == m["from_city"] else "先铁后飞"
     return {**m, "total_fmt": _fdur(m["total"]),
             "ride_fmt": _fdur(m["flight"]["duration"] + m["rail"]["ride"]),
             "price_fmt": f"约 ¥{m['price']}" if m.get("price") else "—",
-            "note": f"经{m['hub']}中转: 飞行+铁路, 已含中转缓冲约2.25小时(估算)"}
+            "note": f"经{m['hub']}中转({order}), 已含中转缓冲约2.25小时(估算)"}
 
 
 def _expand_dest_siblings(cur, place):

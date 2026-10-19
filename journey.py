@@ -352,6 +352,12 @@ def flight_plans(cur, from_city, to_city):
         return _sched_plans(cur, sa, da, r["km"], r["price_est"], from_city, to_city)
     out = []
     for r in rows:
+        sa = cur.execute("SELECT iata, name, cn_city, lat, lon FROM airports_full WHERE iata=?",
+                         (r["src_iata"],)).fetchone()
+        da = cur.execute("SELECT iata, name, cn_city, lat, lon FROM airports_full WHERE iata=?",
+                         (r["dst_iata"],)).fetchone()
+        if not sa or not da:
+            continue
         out.append({
             "kind": "flight", "category": "直飞",
             "flight_no": r["flight_no"], "airline": r["airline"],
@@ -397,47 +403,83 @@ def rail_leg_between(cur, G, from_city, to_city):
 
 
 def multimodal_plans(cur, G, from_city, to_city, flight_list):
-    """空铁联运: 出发城市无直飞到达目的城市时, 经枢纽 飞行+铁路 组合。"""
-    if flight_list:
-        return []
+    """空铁联运: 经枢纽组合飞行+铁路, 与直飞并列展示供对比。
+    方向A 飞行在前: 出发→✈→枢纽→🚄→目的地
+    方向B 铁路在前: 出发→🚄→枢纽→✈→目的地
+    每方向最多2条。"""
     HUBS = ["北京", "上海", "广州", "成都", "西安", "昆明", "乌鲁木齐", "长沙", "武汉", "厦门"]
     out = []
-    src = _city_airports(cur, from_city)
-    if not src:
-        return out
-    qmarks = ",".join("?" * len(src))
-    rows = cur.execute(
-        f"SELECT DISTINCT dst_iata FROM flights WHERE src_iata IN ({qmarks})", src).fetchall()
-    hub_seen = set()
-    for r in rows:
+
+    def _best_flight(src_iatas, dst_iatas):
+        if not src_iatas or not dst_iatas:
+            return None
+        q1 = ",".join("?" * len(src_iatas))
+        q2 = ",".join("?" * len(dst_iatas))
+        return cur.execute(
+            f"SELECT MIN(duration_min) d, MIN(price_est) p FROM flights "
+            f"WHERE src_iata IN ({q1}) AND dst_iata IN ({q2})",
+            list(src_iatas) + list(dst_iatas)).fetchone()
+
+    def _hub_city(iata):
         ap = cur.execute("SELECT cn_city, city FROM airports_full WHERE iata=?",
-                         (r["dst_iata"],)).fetchone()
-        hub = ap["cn_city"] or ap["city"]
-        if hub not in HUBS or hub in hub_seen or hub == to_city:
-            continue
-        hub_seen.add(hub)
-        fl = cur.execute(
-            "SELECT MIN(duration_min) d, MIN(price_est) p FROM flights "
-            "WHERE src_iata IN ({}) AND dst_iata=?".format(qmarks), src + [r["dst_iata"]]).fetchone()
-        rail = rail_leg_between(cur, G, hub, to_city)
+                         (iata,)).fetchone()
+        return (ap["cn_city"] or ap["city"]) if ap else None
+
+    def _emit(hub, rail, fl, fly_from, fly_to, rail_from, rail_to):
         if not fl or not fl["d"] or not rail:
-            continue
+            return False
         tid, code, ttype, ride, dep, arr, rprice, sid1, sid2 = rail
         total = fl["d"] + 90 + ride + 45
         price = (fl["p"] or 0) + (rprice or 0)
         rpath = train_path(cur, tid, sid1, sid2)
         out.append({"kind": "multimodal", "category": "空铁联运", "hub": hub,
                     "from_city": from_city, "to_city": to_city,
-                    "flight": {"airline": None, "from_city": from_city, "to_city": hub,
+                    "flight": {"airline": None, "from_city": fly_from, "to_city": fly_to,
                                "duration": fl["d"], "price": fl["p"]},
                     "rail": {"train_id": tid, "code": code, "type": ttype,
-                             "from_city": hub, "to_city": to_city,
+                             "from_city": rail_from, "to_city": rail_to,
                              "board": rpath[0][2] if rpath else "",
                              "alight": rpath[-1][2] if rpath else "",
                              "ride": ride, "price": rprice, "path": rpath},
                     "total": total, "price": price if price else None})
-        if len(out) >= 4:
-            break
+        return True
+
+    # 方向A: 飞行在前 —— 出发城市机场 → 枢纽机场, 枢纽 → 火车 → 目的地
+    src = _city_airports(cur, from_city)
+    if src:
+        hub_seen, n_a = set(), 0
+        for (dst_iata,) in cur.execute(
+                "SELECT DISTINCT dst_iata FROM flights WHERE src_iata IN (%s)"
+                % ",".join("?" * len(src)), src).fetchall():
+            hub = _hub_city(dst_iata)
+            if (hub not in HUBS or hub in hub_seen
+                    or hub in (from_city, to_city)):
+                continue
+            hub_seen.add(hub)
+            fl = _best_flight(src, [dst_iata])
+            rail = rail_leg_between(cur, G, hub, to_city)
+            if _emit(hub, rail, fl, from_city, hub, hub, to_city):
+                n_a += 1
+                if n_a >= 2:
+                    break
+    # 方向B: 铁路在前 —— 出发 → 火车 → 枢纽, 枢纽机场 → 目的地机场
+    dst = _city_airports(cur, to_city)
+    if dst:
+        hub_seen, n_b = set(), 0
+        for (src_iata,) in cur.execute(
+                "SELECT DISTINCT src_iata FROM flights WHERE dst_iata IN (%s)"
+                % ",".join("?" * len(dst)), dst).fetchall():
+            hub = _hub_city(src_iata)
+            if (hub not in HUBS or hub in hub_seen
+                    or hub in (from_city, to_city)):
+                continue
+            hub_seen.add(hub)
+            fl = _best_flight(_city_airports(cur, hub), dst)
+            rail = rail_leg_between(cur, G, from_city, hub)
+            if _emit(hub, rail, fl, hub, to_city, from_city, hub):
+                n_b += 1
+                if n_b >= 2:
+                    break
     return out
 
 

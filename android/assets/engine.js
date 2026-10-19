@@ -403,44 +403,69 @@
     return pts;
   }
   function multimodalPlans(fromCity, toCity, flightList) {
-    if (flightList.length) return [];
     var HUBS = ["北京", "上海", "广州", "成都", "西安", "昆明", "乌鲁木齐", "长沙", "武汉", "厦门"];
-    var src = cityAirports(fromCity);
-    if (!src.length) return [];
-    var out = [], hubSeen = {};
-    D.flights.forEach(function (f) {
-      if (hubSeenCount(out) >= 4) return;
-      if (src.indexOf(f[4]) < 0) return;
-      var ap = airportsByIata[f[5]];
-      if (!ap) return;
-      var hub = ap.cn_city || ap.city;
-      if (HUBS.indexOf(hub) < 0 || hubSeen[hub] || hub === toCity) return;
-      hubSeen[hub] = 1;
-      var fl = null;
+    var out = [];
+    function bestFlight(srcIatas, dstIatas) {
+      if (!srcIatas.length || !dstIatas.length) return null;
+      var d = null, p = null;
       D.flights.forEach(function (g) {
-        if (src.indexOf(g[4]) >= 0 && g[5] === f[5]) {
-          if (!fl) fl = { d: g[9], p: g[10] };
-          else { fl.d = Math.min(fl.d, g[9]); fl.p = Math.min(fl.p, g[10]); }
-        }
+        if (srcIatas.indexOf(g[4]) < 0 || dstIatas.indexOf(g[5]) < 0) return;
+        if (d === null || g[9] < d) d = g[9];
+        if (p === null || g[10] < p) p = g[10];
       });
-      var rail = railLegBetween(hub, toCity);
-      if (!fl || !fl.d || !rail) return;
+      return d === null ? null : { d: d, p: p };
+    }
+    function emit(hub, rail, fl, flyFrom, flyTo, railFrom, railTo) {
+      if (!fl || !fl.d || !rail) return false;
       var rpath = trainPath(rail[0], rail[7], rail[8]);
       var total = fl.d + 90 + rail[3] + 45;
       var price = (fl.p || 0) + (rail[6] || 0);
       out.push({ kind: "multimodal", category: "空铁联运", hub: hub,
         from_city: fromCity, to_city: toCity,
-        flight: { airline: null, from_city: fromCity, to_city: hub, duration: fl.d, price: fl.p },
+        flight: { airline: null, from_city: flyFrom, to_city: flyTo,
+          duration: fl.d, price: fl.p },
         rail: { train_id: rail[0], code: rail[1], type: rail[2],
-          from_city: hub, to_city: toCity,
+          from_city: railFrom, to_city: railTo,
           board: rpath.length ? rpath[0][2] : "",
           alight: rpath.length ? rpath[rpath.length - 1][2] : "",
           ride: rail[3], price: rail[6], path: rpath },
         total: total, price: price || null });
-    });
+      return true;
+    }
+    // 方向A: 飞行在前 —— 出发机场 → 枢纽机场, 枢纽 → 火车 → 目的地
+    var src = cityAirports(fromCity);
+    if (src.length) {
+      var hubSeenA = {}, nA = 0;
+      D.flights.forEach(function (f) {
+        if (nA >= 2) return;
+        if (src.indexOf(f[4]) < 0) return;
+        var ap = airportsByIata[f[5]];
+        if (!ap) return;
+        var hub = ap.cn_city || ap.city;
+        if (HUBS.indexOf(hub) < 0 || hubSeenA[hub] || hub === fromCity || hub === toCity) return;
+        hubSeenA[hub] = 1;
+        if (emit(hub, railLegBetween(hub, toCity), bestFlight(src, [f[5]]),
+            fromCity, hub, hub, toCity)) nA++;
+      });
+    }
+    // 方向B: 铁路在前 —— 出发 → 火车 → 枢纽, 枢纽机场 → 目的地机场
+    var dst = cityAirports(toCity);
+    if (dst.length) {
+      var hubSeenB = {}, nB = 0;
+      D.flights.forEach(function (f) {
+        if (nB >= 2) return;
+        if (dst.indexOf(f[5]) < 0) return;
+        var ap = airportsByIata[f[4]];
+        if (!ap) return;
+        var hub = ap.cn_city || ap.city;
+        if (HUBS.indexOf(hub) < 0 || hubSeenB[hub] || hub === fromCity || hub === toCity) return;
+        hubSeenB[hub] = 1;
+        if (emit(hub, railLegBetween(fromCity, hub), bestFlight(cityAirports(hub), dst),
+            hub, toCity, fromCity, hub)) nB++;
+      });
+    }
     return out;
   }
-  function hubSeenCount(list) { return list.length; }
 
   /* ---------------- 方案格式化(与桌面版同形) ---------------- */
   function formatTrainPlan(p) {
@@ -473,7 +498,8 @@
     o.total_fmt = fdur(m.total);
     o.ride_fmt = fdur(m.flight.duration + m.rail.ride);
     o.price_fmt = m.price ? "约 ¥" + m.price : "—";
-    o.note = "经" + m.hub + "中转: 飞行+铁路, 已含中转缓冲约2.25小时(估算)";
+    var order = m.flight.from_city === m.from_city ? "先飞后铁" : "先铁后飞";
+    o.note = "经" + m.hub + "中转(" + order + "), 已含中转缓冲约2.25小时(估算)";
     return o;
   }
   function expandDestSiblings(place) {

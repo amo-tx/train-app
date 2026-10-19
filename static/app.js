@@ -216,8 +216,9 @@ function planSummary(p) {
       ${p.dep ? `<span class="tt-now">${p.dep}→${p.arr}</span> ` : ""}
       <span class="muted">${ap(p.src_airport_cn || p.src_airport)}(${p.src_iata}) → ${ap(p.dst_airport_cn || p.dst_airport)}(${p.dst_iata})${p.model ? " · " + esc(p.model) : ""}</span>`;
   }
-  return `✈ ${esc(p.from_city || "")} → ${esc(p.hub)} <span class="muted">飞行${fmtDur(p.flight.duration)}</span>
-    → 🚄 ${badge(p.rail.type)}${esc(p.rail.code)} <span class="muted">${esc(p.hub)} → ${esc(p.to_city || "")} ${fmtDur(p.rail.ride)}</span>`;
+  const flyPart = `✈ ${esc(p.flight.from_city)} → ${esc(p.flight.to_city)} <span class="muted">飞行${fmtDur(p.flight.duration)}</span>`;
+  const railPart = `🚄 ${badge(p.rail.type)}${esc(p.rail.code)} <span class="muted">${esc(p.rail.from_city)} → ${esc(p.rail.to_city)} ${fmtDur(p.rail.ride)}</span>`;
+  return p.flight.from_city === p.from_city ? `${flyPart}\n    → ${railPart}` : `${railPart}\n    → ${flyPart}`;
 }
 
 function planCatBadge(p) {
@@ -488,7 +489,7 @@ function renderPlanDetail(plan) {
       <p class="muted">${plan.dep ? "航班号为真实班次(FP-Dataset 时刻库)" : "时刻为估算"} · 票价为估价 · 地图中: 蓝虚线=直飞航线(大圆示意) · 点=起降机场</p>`);
   } else {
     box.innerHTML = head.replace("%T", `<table><tbody>
-      <tr><td>✈ 航班</td><td>${esc(plan.flight.from_city)} → ${esc(plan.flight.to_city)}(经${esc(plan.hub)})</td>
+      <tr><td>✈ 航班</td><td>${esc(plan.flight.from_city)} → ${esc(plan.flight.to_city)}${plan.flight.from_city === plan.from_city ? "(出发段)" : "(到达段)"}</td>
       <td class="muted">飞行 ${fmtDur(plan.flight.duration)}</td><td>—</td>
       <td>${plan.flight.price ? "¥" + plan.flight.price : "—"}</td></tr>
       <tr><td>🚄 铁路</td><td>${badge(plan.rail.type)}<a class="link" href="#/train/${plan.rail.train_id}">${esc(plan.rail.code)}</a> ${esc(plan.rail.from_city)} → ${esc(plan.rail.to_city)}</td>
@@ -549,23 +550,26 @@ function drawPlanRoute(plan, byName) {
       if (pt) L.circleMarker(pt, { radius: 6, color: "#fff", weight: 2, fillColor: "#ff8a3d", fillOpacity: 1 })
         .bindTooltip(nm).addTo(_routeLayer);
     };
-    // 飞行段: 出发城市代表站 -> 枢纽城市代表站(示意)
-    const p1 = cityPt(plan.from_city), p2 = cityPt(plan.hub);
+    // 飞行段: 航班两端城市(示意), 两个方向均由字段决定
+    const p1 = cityPt(plan.flight.from_city), p2 = cityPt(plan.flight.to_city);
     if (p1 && p2) L.polyline([addLL(p1), addLL(p2)], { color: "#4da3ff", weight: 4, dashArray: "10 6" })
-      .bindTooltip(`✈ ${plan.from_city} → ${plan.hub}（示意）`).addTo(_routeLayer);
+      .bindTooltip(`✈ ${plan.flight.from_city} → ${plan.flight.to_city}（示意）`).addTo(_routeLayer);
     // 铁路段: 有真实路径坐标则实线绘制, 否则城市示意虚线
     const rp = (plan.rail && plan.rail.path) || [];
     const rlat = rp.map(p => gcj([p[0], p[1]])).filter(Boolean).map(addLL);
+    const flySeg = `<span style="color:#4da3ff">╌</span> ✈ ${esc(plan.flight.from_city)} → ${esc(plan.flight.to_city)} <span class="muted">示意</span>`;
+    const railSeg = `<span style="color:${PLAN_COLOR[plan.rail.type] || "#ff8a3d"}">━</span> ${badge(plan.rail.type)}${esc(plan.rail.code)} ${esc(plan.rail.board || plan.rail.from_city)} → ${esc(plan.rail.alight || plan.rail.to_city || "")}`;
     if (rlat.length >= 2) {
       L.polyline(rlat, { color: PLAN_COLOR[plan.rail.type] || "#ff8a3d", weight: 5, opacity: 0.9 })
         .bindTooltip(`🚄 ${plan.rail.code} ${plan.rail.board || ""} → ${plan.rail.alight || ""}`).addTo(_routeLayer);
       markName(plan.rail.board); markName(plan.rail.alight);
-      segs.push(`<span style="color:#4da3ff">╌</span> ✈ ${esc(plan.from_city)} → ${esc(plan.hub)} <span class="muted">示意</span> · <span style="color:${PLAN_COLOR[plan.rail.type] || "#ff8a3d"}">━</span> ${badge(plan.rail.type)}${esc(plan.rail.code)} ${esc(plan.rail.board || plan.hub)} → ${esc(plan.rail.alight || plan.to_city || "")}`);
+      segs.push(plan.flight.from_city === plan.from_city ? `${flySeg} · ${railSeg}` : `${railSeg} · ${flySeg}`);
     } else {
-      const p3 = cityPt(plan.to_city);
-      if (p2 && p3) L.polyline([addLL(p2), addLL(p3)], { color: "#ff8a3d", weight: 4, dashArray: "4 6" })
-        .bindTooltip(`🚄 ${plan.rail.code} ${plan.hub} → ${plan.to_city}（示意）`).addTo(_routeLayer);
-      segs.push(`✈ ${esc(plan.from_city)} → ${esc(plan.hub)} <span class="muted">示意</span> · 🚄 ${esc(plan.rail.code)} ${esc(plan.hub)} → ${esc(plan.to_city || "")} <span class="muted">示意</span>`);
+      const p3 = cityPt(plan.rail.from_city), p4 = cityPt(plan.rail.to_city);
+      if (p3 && p4) L.polyline([addLL(p3), addLL(p4)], { color: "#ff8a3d", weight: 4, dashArray: "4 6" })
+        .bindTooltip(`🚄 ${plan.rail.code} ${plan.rail.from_city} → ${plan.rail.to_city}（示意）`).addTo(_routeLayer);
+      const railSeg2 = `🚄 ${esc(plan.rail.code)} ${esc(plan.rail.from_city)} → ${esc(plan.rail.to_city || "")} <span class="muted">示意</span>`;
+      segs.push(plan.flight.from_city === plan.from_city ? `${flySeg} · ${railSeg2}` : `${railSeg2} · ${flySeg}`);
     }
   }
   _routeLayer.addTo(_lmap);
