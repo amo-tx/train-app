@@ -144,6 +144,11 @@
     var ride = (arr - dep) - stopSum;
     var cum = trainCum(tr);
     var km = (cum[p1] !== null && cum[p2] !== null) ? cum[p2] - cum[p1] : null;
+    if (km === null) {
+      // 兜底: 沿线某站缺坐标导致里程断链时, 用上下车站直线距离×绕行系数估算
+      var A = D.coords[sl[p1][0]], B = D.coords[sl[p2][0]];
+      if (A && B) km = haversine(A[0], A[1], B[0], B[1]) * (DIST_FACTOR[tr.type] || 1.2);
+    }
     var price = km ? Math.max(5, Math.round(km * (PRICE_RATE[tr.type] || 0.3))) : null;
     var pts = [];
     for (var k = p1; k <= p2; k++) {

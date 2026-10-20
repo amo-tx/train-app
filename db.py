@@ -308,10 +308,32 @@ def _write_train(cur, code, ttype, lid, sids, mileages, depart0, avg_speed, emu,
     return tid
 
 
+def _meta_build(path):
+    """读取库内 meta.data_build(数据构建版本), 读不到返回 None。"""
+    try:
+        con = sqlite3.connect(path)
+        row = con.execute("SELECT v FROM meta WHERE k='data_build'").fetchone()
+        con.close()
+        return row[0] if row else None
+    except sqlite3.Error:
+        return None
+
+
 def seed(force=False):
     if os.path.exists(DB_PATH) and not force:
-        print("[skip] 数据库已存在:", DB_PATH)
-        return
+        # frozen 模式: 内嵌库 data_build 与本地的不同(数据修订过)则重新释放,
+        # 避免旧版本 exe 释放过的库一直驻留(如缺坐标车站修复前的库)。
+        if getattr(sys, "frozen", False):
+            res_db = os.path.join(RESOURCE_DIR, "data", "train.db")
+            if os.path.exists(res_db) and _meta_build(res_db) != _meta_build(DB_PATH):
+                os.remove(DB_PATH)
+                print("[seed] 内嵌数据库版本更新, 重新释放")
+            else:
+                print("[skip] 数据库已存在且版本一致:", DB_PATH)
+                return
+        else:
+            print("[skip] 数据库已存在:", DB_PATH)
+            return
     os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
     if os.path.exists(DB_PATH):
         os.remove(DB_PATH)

@@ -126,6 +126,11 @@ def _seg_info(G, tr, p1, p2):
     ride = (arr - dep) - sum(sl[j][4] for j in range(p1 + 1, p2))
     cum = _train_cum(G, tr)
     km = (cum[p2] - cum[p1]) if (cum[p1] is not None and cum[p2] is not None) else None
+    if km is None:
+        # 兜底: 沿线某站缺坐标导致累计里程断链时, 用上下车站直线距离×绕行系数估算
+        a, b = G["coords"].get(sl[p1][0]), G["coords"].get(sl[p2][0])
+        if a and b:
+            km = haversine(a[0], a[1], b[0], b[1]) * DIST_FACTOR.get(tr["type"], 1.2)
     price = max(5, round(km * PRICE_RATE.get(tr["type"], 0.3))) if km else None
     # 路径坐标(最多 80 点, 均匀采样)
     pts = [(G["coords"][sl[j][0]][0], G["coords"][sl[j][0]][1], G["names"].get(sl[j][0], ""))
