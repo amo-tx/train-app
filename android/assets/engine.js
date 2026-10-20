@@ -972,21 +972,20 @@
     if (sid === null) return { ok: false, error: "缺少 station_id" };
     var s = stationById[sid];
     if (!s) return { ok: false, error: "车站不存在" };
-    var rows = (D.legs[sid] || []).map(function (leg) {
+    var all = (D.legs[sid] || []).map(function (leg) {
       var tr = trainById[leg[0]];
       return { train: tr, depart_min: leg[3] !== null ? leg[3] : leg[2],
         arrive_min: leg[2], id: tr.id, code: tr.code, type: tr.type,
         start_name: tr.start_name, end_name: tr.end_name };
     }).filter(function (r) { return r.depart_min !== null && r.depart_min >= after; })
-      .sort(function (a, b) { return a.depart_min - b.depart_min; })
-      .slice(0, 50)
-      .map(function (r) {
+      .sort(function (a, b) { return a.depart_min - b.depart_min; });
+    var rows = all.slice(0, 500).map(function (r) {
       return { id: r.id, code: r.code, type: r.type,
         arrive_min: r.arrive_min, depart_min: r.depart_min,
         arrive: hhmm(r.arrive_min), depart: hhmm(r.depart_min),
         start_name: r.start_name, end_name: r.end_name };
-      });
-    return { ok: true, station: s.name, after: hhmm(after), data: rows };
+    });
+    return { ok: true, station: s.name, after: hhmm(after), total: all.length, data: rows };
   }
   function apiEmu() {
     return { ok: true, data: D.emu.map(function (e) {

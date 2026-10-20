@@ -190,7 +190,7 @@ async function viewSchedule() {
     const s = st.data[0];
     const j = await api(`/api/schedule?station_id=${s.id}&after=${hh * 60}`);
     document.getElementById("out").innerHTML = `<p class="muted" style="margin-bottom:10px">
-      ${esc(j.station)} · ${esc(j.after)} 之后 · 共 ${j.data.length} 趟</p><table>
+      ${esc(j.station)} · ${esc(j.after)} 之后 · 共 ${j.total ?? j.data.length} 趟</p><table>
       <thead><tr><th>车次</th><th>区间</th><th>到点</th><th>开点</th></tr></thead>
       <tbody>${j.data.map(r => `<tr><td><a class="link" href="#/train/${r.id}">${badge(r.type)}${esc(r.code)}</a></td>
         <td class="muted">${esc(r.start_name)} → ${esc(r.end_name)}</td>

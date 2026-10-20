@@ -218,20 +218,25 @@ def api_schedule(con, q):
     s = cur.execute("SELECT name FROM stations WHERE id=?", (sid,)).fetchone()
     if not s:
         return {"ok": False, "error": "车站不存在"}
+    total = cur.execute(
+        "SELECT COUNT(*) FROM train_stops ts JOIN trains t ON t.id=ts.train_id "
+        "WHERE ts.station_id=? AND (COALESCE(ts.depart_min, ts.arrive_min) >= ?)",
+        (sid, after)).fetchone()[0]
     rows = cur.execute(
         "SELECT t.id, t.code, t.type, ts.arrive_min, ts.depart_min, "
         "s1.name AS start_name, s2.name AS end_name "
         "FROM train_stops ts JOIN trains t ON t.id=ts.train_id "
         "JOIN stations s1 ON s1.id=t.start_station_id JOIN stations s2 ON s2.id=t.end_station_id "
         "WHERE ts.station_id=? AND (COALESCE(ts.depart_min, ts.arrive_min) >= ?) "
-        "ORDER BY COALESCE(ts.depart_min, ts.arrive_min) LIMIT 50", (sid, after)).fetchall()
+        "ORDER BY COALESCE(ts.depart_min, ts.arrive_min) LIMIT 500", (sid, after)).fetchall()
     data = []
     for r in rows:
         d = _row(r)
         d["arrive"] = _min_to_hhmm(r["arrive_min"])
         d["depart"] = _min_to_hhmm(r["depart_min"])
         data.append(d)
-    return {"ok": True, "station": s["name"], "after": _min_to_hhmm(after), "data": data}
+    return {"ok": True, "station": s["name"], "after": _min_to_hhmm(after),
+            "total": total, "data": data}
 
 
 def _sid_name(con, sid):
